@@ -1,0 +1,148 @@
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>ArcGIS REST JS Browser OAuth2</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://js.arcgis.com/4.25/esri/themes/light/main.css">
+    <link href="all.css" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN"
+        crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.6.3.min.js"
+        integrity="sha256-pvPw+upLPUjgMXY0G+8O0xUf+/Im1MZjXxxgOcBQBXU=" crossorigin="anonymous"></script>
+    <script src="https://js.arcgis.com/4.25/"></script>
+    <script src="all.js"></script>
+</head>
+
+<body>
+    <main>
+        <div class="container-fluid">
+            <header
+                class="d-flex flex-wrap align-items-center justify-content-center justify-content-md-between py-3 mb-4 border-bottom">
+                <a href="/" class="d-flex align-items-center col-md-3 mb-2 mb-md-0 text-dark text-decoration-none">
+                    <svg class="bi me-2" width="40" height="32" role="img" aria-label="Bootstrap">
+                        <use xlink:href="#bootstrap"></use>
+                    </svg>
+                </a>
+                <ul class="nav col-12 col-md-auto mb-2 justify-content-center mb-md-0">
+                    <li><a href="#" class="nav-link px-2 link-secondary">Home</a></li>
+                    <li><a href="#" class="nav-link px-2 link-dark">Features</a></li>
+                    <li><a href="#" class="nav-link px-2 link-dark">Pricing</a></li>
+                    <li><a href="#" class="nav-link px-2 link-dark">FAQs</a></li>
+                    <li><a href="#" class="nav-link px-2 link-dark">About</a></li>
+                </ul>
+                <div class="col-md-3 text-end">
+                    <span id="sessionInfo">Logged in as </span>
+                    <button type="button" class="btn btn-primary me-2" id="withPopupButton">Login</button>
+                    <button type="button" class="btn btn-warning" id="signOutButton">Logout</button>
+                </div>
+            </header>
+            <div id="content"></div>
+        </div>
+    </main>
+    <script type="module">
+        import { ArcGISIdentityManager } from 'https://cdn.skypack.dev/@esri/arcgis-rest-request@4.0.0';
+
+        let session = null;
+        const clientId = "JiM7IJ9k519eIGIR";
+        const redirectUri = window.location.origin + "/authenticate.html";
+
+        const serializedSession = localStorage.getItem("__ARCGIS_REST_USER_SESSION__"); // Check to see if there is a serialized session in local storage.
+
+        if (serializedSession !== null && serializedSession !== "undefined") {
+            session = ArcGISIdentityManager.deserialize(serializedSession);
+        }
+
+        function updateSessionInfo(session) {
+            let sessionInfo = document.getElementById("sessionInfo");
+
+            if (session) {
+                sessionInfo.innerHTML = "Logged in as " + session.username;
+                localStorage.setItem("__ARCGIS_REST_USER_SESSION__", session.serialize());
+                document.getElementById("withPopupButton").hidden = true;
+                document.getElementById("signOutButton").hidden = false;
+            } else {
+                sessionInfo.innerHTML = "";
+                document.getElementById("withPopupButton").hidden = false;
+                document.getElementById("signOutButton").hidden = true;
+            }
+        }
+
+        updateSessionInfo(session);
+
+        document.getElementById("withPopupButton").addEventListener("click", (event) => {
+            // Begin an OAuth2 login using a popup.
+            ArcGISIdentityManager.beginOAuth2({
+                clientId: clientId,
+                redirectUri: redirectUri,
+                popup: true
+            })
+                .then((newSession) => {
+                    // Upon a successful login, update the session with the new session.
+                    session = newSession;
+                    console.log(session);
+                    updateSessionInfo(session);
+                })
+                .catch((error) => {
+                    console.log(error);
+                });
+            event.preventDefault();
+        });
+
+        document.getElementById("signOutButton").addEventListener("click", (event) => {
+            event.preventDefault();
+            // call the signOut method to invalidate the token.
+            session.signOut().then(() => {
+                session = null; // Clear the session from memory.
+                localStorage.removeItem("__ARCGIS_REST_USER_SESSION__");
+                updateSessionInfo();
+            });
+        });
+
+        function includeHTML(id, file) {
+            var z, i, elmnt, file, xhttp;
+            /* Loop through a collection of all HTML elements: */
+            elmnt = document.getElementById(id);
+            elmnt.in
+            if (file) {
+                /* Make an HTTP request using the attribute value as the file name: */
+                xhttp = new XMLHttpRequest();
+                xhttp.onreadystatechange = function () {
+                    if (this.readyState == 4) {
+                        if (this.status == 200) { setInnerHTML(elmnt, this.responseText); }
+                        if (this.status == 404) { elmnt.innerHTML = "Page not found."; }
+                    }
+                }
+                xhttp.open("GET", file, true);
+                xhttp.send();
+                /* Exit the function: */
+                return;
+            }
+        }
+
+        function setInnerHTML(elm, html) {
+            elm.innerHTML = html;
+
+            Array.from(elm.querySelectorAll("script"))
+                .forEach(oldScriptEl => {
+                    const newScriptEl = document.createElement("script");
+
+                    Array.from(oldScriptEl.attributes).forEach(attr => {
+                        newScriptEl.setAttribute(attr.name, attr.value)
+                    });
+
+                    const scriptText = document.createTextNode(oldScriptEl.innerHTML);
+                    newScriptEl.appendChild(scriptText);
+
+                    oldScriptEl.parentNode.replaceChild(newScriptEl, oldScriptEl);
+                });
+        }
+
+        includeHTML("content", "controls/US1.htm");
+    </script>
+</body>
+
+</html>
