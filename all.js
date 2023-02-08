@@ -44,21 +44,35 @@ require([
         document.getElementById("results").innerText = 'Signed Out'
     }
 
-    document.getElementById("withPopupButton").addEventListener("click", function () {
-        // user will be redirected to OAuth sign-in page
-        esriId.getCredential((info.portalUrl + "/sharing"), {
-            oAuthPopupConfirmation: false
-        }).then(function () {
-            handleSignedIn();
+    if (document.getElementById("withPopupButton")) {
+        document.getElementById("withPopupButton").addEventListener("click", function () {
+            // user will be redirected to OAuth sign-in page
+            esriId.getCredential((info.portalUrl + "/sharing"), {
+                oAuthPopupConfirmation: false
+            }).then(function () {
+                handleSignedIn();
+            });
         });
-    });
+    }
 
-    document.getElementById("signOutButton").addEventListener("click", function () {
+    if (document.getElementById("signOutButton")) {
+        document.getElementById("signOutButton").addEventListener("click", function () {
+            performSignOut();
+        });
+    }
+
+    function performSignOut() {
         esriId.destroyCredentials();
-        window.location.reload();
-    });
+        handleSignedOut();
+    }
 
-    function displayMapWithLayer() {
+    function displayMapWithLayer(isUsingOauth) {
+        if (isUsingOauth) {
+            esriConfig.apiKey = null;
+        } else {
+            esriConfig.apiKey = "AAPK0644938e580d495085802192448b5172rD7TPAVbASoq5svBhnVDcZvhqu1KE3cMd6fUHRVfUp22HCS34G_J_ZAArC_jgu6U";
+        }
+
         const map = new Map({
             basemap: "arcgis-topographic" // Basemap layer service
         });
@@ -78,10 +92,17 @@ require([
         map.add(WATenemantsLayer, 0);
     }
 
-    function displayPortalItems() {
+    function displayPortalItems(isUsingOauth) {
         const portal = new Portal();
         // Setting authMode to immediate signs the user in once loaded
-        portal.authMode = "immediate";
+
+        if (isUsingOauth) {
+            esriConfig.apiKey = null;
+            portal.authMode = "immediate";
+        } else {
+            esriConfig.apiKey = "AAPK0644938e580d495085802192448b5172rD7TPAVbASoq5svBhnVDcZvhqu1KE3cMd6fUHRVfUp22HCS34G_J_ZAArC_jgu6U";
+        }
+
         // Once loaded, user is signed in
         portal.load().then(() => {
             // Create query parameters for the portal search
@@ -117,4 +138,7 @@ require([
         });
         document.getElementById("listitems").innerHTML = htmlFragment;
     }
+
+    return { createGallery, displayMapWithLayer, displayPortalItems, performSignOut }
 });
+

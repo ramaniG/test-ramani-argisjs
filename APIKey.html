@@ -1,0 +1,119 @@
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>ArcGIS JS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://js.arcgis.com/4.25/esri/themes/light/main.css">
+    <link href="all.css" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN"
+        crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.6.3.min.js"
+        integrity="sha256-pvPw+upLPUjgMXY0G+8O0xUf+/Im1MZjXxxgOcBQBXU=" crossorigin="anonymous"></script>
+    <script src="https://js.arcgis.com/4.25/"></script>
+</head>
+
+<body>
+    <main>
+        <div class="container-fluid">
+            <header
+                class="d-flex flex-wrap align-items-center justify-content-center justify-content-md-between py-3 mb-4 border-bottom">
+                <a href="/" class="d-flex align-items-center col-md-3 mb-2 mb-md-0 text-dark text-decoration-none">
+                    <svg class="bi me-2" width="40" height="32" role="img" aria-label="Bootstrap">
+                        <use xlink:href="#bootstrap"></use>
+                    </svg>
+                </a>
+                <div class="col-md-3 text-end">
+                </div>
+            </header>
+            <div id="listitems" class="esri-item-gallery" style="width: 100%;"></div>
+            <div id="viewDiv"></div>
+        </div>
+    </main>
+    <script>
+        require([
+            "esri/portal/Portal",
+            "esri/identity/OAuthInfo",
+            "esri/identity/IdentityManager",
+            "esri/config",
+            "esri/Map",
+            "esri/views/MapView",
+            "esri/layers/FeatureLayer",
+            "esri/portal/PortalQueryParams"
+        ], function (Portal, OAuthInfo, esriId, esriConfig, Map, MapView, FeatureLayer, PortalQueryParams) {
+            esriConfig.apiKey = "AAPK0644938e580d495085802192448b5172rD7TPAVbASoq5svBhnVDcZvhqu1KE3cMd6fUHRVfUp22HCS34G_J_ZAArC_jgu6U";
+
+            // Remove any previously logged in user 
+            // esriId.destroyCredentials();
+            //window.location.reload();
+
+            displayMapWithLayer();
+
+            function displayMapWithLayer() {
+                const map = new Map({
+                    basemap: "arcgis-topographic" // Basemap layer service
+                });
+
+                const view = new MapView({
+                    map: map,
+                    center: [122.642934, -25.404205], // Longitude, latitude
+                    zoom: 13, // Zoom level
+                    container: "viewDiv" // Div element
+                });
+
+                //Trailheads feature layer (points)
+                const WATenemantsLayer = new FeatureLayer({
+                    url: "https://services.arcgis.com/1zcGoMGglHWsF36l/ArcGIS/rest/services/WA_Current_Tenements/FeatureServer/0",
+                });
+
+                map.add(WATenemantsLayer, 0);
+            }
+
+            function displayPortalItems(isUsingOauth) {
+                const portal = new Portal();
+                // Setting authMode to immediate signs the user in once loaded
+                portal.authMode = "anonymous";
+
+                // Once loaded, user is signed in
+                portal.load().then(() => {
+                    // Create query parameters for the portal search
+                    const queryParams = new PortalQueryParams({
+                        query: "owner:" + portal.user.username,
+                        sortField: "numViews",
+                        sortOrder: "desc",
+                        num: 20
+                    });
+
+                    // Query the items based on the queryParams created from portal above
+                    portal.queryItems(queryParams).then(createGallery);
+                });
+            }
+
+            function createGallery(items) {
+                let htmlFragment = "";
+
+                items.results.forEach((item) => {
+                    htmlFragment +=
+                        '<div class="esri-item-container">' +
+                        (item.thumbnailUrl
+                            ? '<div class="esri-image" style="background-image:url(' + item.thumbnailUrl + ');"></div>'
+                            : '<div class="esri-image esri-null-image">Thumbnail not available</div>') +
+                        (item.title
+                            ? '<div class="esri-title">' + (item.title || "") + "</div>"
+                            : '<div class="esri-title esri-null-title">Title not available</div>') +
+                        ('<div class="esri-title">Access : ' + (item.access || "") + "</div>") +
+                        ('<div class="esri-title">Feature Layer : ' + (item.isLayer) + "</div>") +
+                        ('<div class="esri-title">Type : ' + (item.type || "") + "</div>") +
+                        ('<div class="esri-title">URL : ' + (item.url || "") + "</div>") +
+                        "</div>";
+                });
+                document.getElementById("listitems").innerHTML = htmlFragment;
+            }
+        });
+    </script>
+</body>
+
+</html>
