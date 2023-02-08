@@ -27,21 +27,22 @@
                         <use xlink:href="#bootstrap"></use>
                     </svg>
                 </a>
-                <ul class="nav col-12 col-md-auto mb-2 justify-content-center mb-md-0">
+                <!-- <ul class="nav col-12 col-md-auto mb-2 justify-content-center mb-md-0">
                     <li><a href="Home.html" class="nav-link px-2 link-secondary">Home</a></li>
                     <li><a href="OAuthLayerAccess.html" class="nav-link px-2 link-dark">OAuth Layer Access</a>
                     </li>
                     <li><a href="APIKeyLayerAccess.html" class="nav-link px-2 link-dark">API Key Layer
                             Access</a></li>
-                </ul>
+                </ul> -->
                 <div class="col-md-3 text-end">
-                    <span id="sessionInfo">Logged in as </span>
+                    <!-- <span id="sessionInfo">Logged in as </span> -->
                     <button type="button" class="btn btn-primary me-2" id="withPopupButton">Login</button>
                     <button type="button" class="btn btn-warning" id="signOutButton">Logout</button>
                 </div>
             </header>
-            <div id="content"></div>
             <pre><code id="results"></code></pre>
+            <div id="listitems" class="esri-item-gallery" style="width: 100%;"></div>
+            <div id="viewDiv"></div>
         </div>
     </main>
 </body>
