@@ -34,7 +34,7 @@
             </header>
             <!-- <pre><code id="results"></code></pre> -->
             <!-- <div id="listitems" class="esri-item-gallery" style="width: 100%;"></div> -->
-            <button id="btmPerformWhereInQuery">Perform Where IN Query</button>
+            <!-- <button id="btmPerformWhereInQuery">Perform Where IN Query</button> -->
             <div id="viewDiv"></div>
         </div>
     </main>
@@ -261,7 +261,7 @@
                         //view.graphics.removeAll();
                         // Add features to graphics layer
                         //view.graphics.addMany(results.features);
-                        
+
                         map.add(queriedLayer);
 
                         // There are many options to specify the zoom to criteria. Here we are using list of Graphics
@@ -322,9 +322,7 @@
                     });
             }
 
-            document.getElementById("btmPerformWhereInQuery").addEventListener("click", function () {
-                performWhereInQuery();
-            });
+            performWhereInQuery();
 
         });
     </script>
