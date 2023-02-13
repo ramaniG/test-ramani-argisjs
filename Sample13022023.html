@@ -1,0 +1,333 @@
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>ArcGIS JS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://js.arcgis.com/4.25/esri/themes/light/main.css">
+    <link href="all.css" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN"
+        crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.6.3.min.js"
+        integrity="sha256-pvPw+upLPUjgMXY0G+8O0xUf+/Im1MZjXxxgOcBQBXU=" crossorigin="anonymous"></script>
+    <script src="https://js.arcgis.com/4.25/"></script>
+</head>
+
+<body>
+    <main>
+        <div class="container-fluid">
+            <header
+                class="d-flex flex-wrap align-items-center justify-content-center justify-content-md-between py-3 mb-4 border-bottom">
+                <a href="/" class="d-flex align-items-center col-md-3 mb-2 mb-md-0 text-dark text-decoration-none">
+                    <svg class="bi me-2" width="40" height="32" role="img" aria-label="Bootstrap">
+                        <use xlink:href="#bootstrap"></use>
+                    </svg>
+                </a>
+                <div class="col-md-3 text-end">
+                    <span id="sessionInfo"></span>
+                    <button type="button" class="btn btn-primary me-2" id="withPopupButton">Login</button>
+                    <button type="button" class="btn btn-warning" id="signOutButton">Logout</button>
+                </div>
+            </header>
+            <!-- <pre><code id="results"></code></pre> -->
+            <!-- <div id="listitems" class="esri-item-gallery" style="width: 100%;"></div> -->
+            <button id="btmPerformWhereInQuery">Perform Where IN Query</button>
+            <div id="viewDiv"></div>
+        </div>
+    </main>
+    <script>
+        require([
+            "esri/portal/Portal",
+            "esri/identity/OAuthInfo",
+            "esri/identity/IdentityManager",
+            "esri/config",
+            "esri/Map",
+            "esri/views/MapView",
+            "esri/layers/FeatureLayer",
+            "esri/portal/PortalQueryParams"
+        ], function (Portal, OAuthInfo, esriId, esriConfig, Map, MapView, FeatureLayer, PortalQueryParams) {
+            const clientId = "JiM7IJ9k519eIGIR";
+            const redirectUri = window.location.origin + "/oauth-callback.html";
+
+            const info = new OAuthInfo({
+                appId: clientId,
+                popup: true,
+                flowType: "authorization-code",
+                popupCallbackUrl: redirectUri
+            });
+
+            esriId.registerOAuthInfos([info]);
+
+            esriId
+                .checkSignInStatus(info.portalUrl + "/sharing")
+                .then(() => {
+                    handleSignedIn();
+                })
+
+                .catch(() => {
+                    handleSignedOut();
+                });
+
+            function handleSignedIn() {
+                const portal = new Portal();
+                portal.load().then(() => {
+                    const results = { name: portal.user.fullName, username: portal.user.username };
+                    document.getElementById("sessionInfo").innerText = "Signed in as " + results.name;
+                    //document.getElementById("results").innerText = JSON.stringify(results, null, 2);
+                });
+                // displayPortalItems();
+                // displayMapWithLayer();
+            }
+
+            function handleSignedOut() {
+                document.getElementById("sessionInfo").innerText = 'Signed Out'
+            }
+
+            document.getElementById("withPopupButton").addEventListener("click", function () {
+                // user will be redirected to OAuth sign-in page
+                esriId.getCredential((info.portalUrl + "/sharing"), {
+                    oAuthPopupConfirmation: false
+                }).then(function () {
+                    handleSignedIn();
+                });
+            });
+
+            document.getElementById("signOutButton").addEventListener("click", function () {
+                esriId.destroyCredentials();
+                window.location.reload();
+            });
+
+            //Tenements feature layer (points)
+            const WATenemantsLayer = new FeatureLayer({
+                url: "https://services.slip.wa.gov.au/public/rest/services/SLIP_Public_Services/Industry_and_Mining/MapServer/3",
+            });
+
+            const map = new Map({
+                basemap: "arcgis-topographic" // Basemap layer service
+            });
+
+            const view = new MapView({
+                map: map,
+                center: [122.642934, -25.404205], // Longitude, latitude
+                zoom: 13, // Zoom level
+                container: "viewDiv" // Div element
+            });
+
+            function displayMapWithLayer() {
+                map.add(WATenemantsLayer, 0);
+            }
+
+            function displayPortalItems() {
+                const portal = new Portal();
+                // Setting authMode to immediate signs the user in once loaded
+                portal.authMode = "immediate";
+                // Once loaded, user is signed in
+                portal.load().then(() => {
+                    // Create query parameters for the portal search
+                    const queryParams = new PortalQueryParams({
+                        query: "owner:" + portal.user.username,
+                        sortField: "numViews",
+                        sortOrder: "desc",
+                        num: 20
+                    });
+
+                    // Query the items based on the queryParams created from portal above
+                    portal.queryItems(queryParams).then(createGallery);
+                });
+            }
+
+            function createGallery(items) {
+                let htmlFragment = "";
+
+                items.results.forEach((item) => {
+                    htmlFragment +=
+                        '<div class="esri-item-container">' +
+                        (item.thumbnailUrl
+                            ? '<div class="esri-image" style="background-image:url(' + item.thumbnailUrl + ');"></div>'
+                            : '<div class="esri-image esri-null-image">Thumbnail not available</div>') +
+                        (item.title
+                            ? '<div class="esri-title">' + (item.title || "") + "</div>"
+                            : '<div class="esri-title esri-null-title">Title not available</div>') +
+                        ('<div class="esri-title">Access : ' + (item.access || "") + "</div>") +
+                        ('<div class="esri-title">Feature Layer : ' + (item.isLayer) + "</div>") +
+                        ('<div class="esri-title">Type : ' + (item.type || "") + "</div>") +
+                        ('<div class="esri-title">URL : ' + (item.url || "") + "</div>") +
+                        "</div>";
+                });
+                document.getElementById("listitems").innerHTML = htmlFragment;
+            }
+
+            // New Functions
+            function performWhereInQuery() {
+                // Create a blue polygon
+                const symbol = {
+                    type: "simple-fill",
+                    color: [20, 130, 200, 0.5],
+                    outline: {
+                        color: "purple",
+                        width: .5
+                    },
+                };
+
+                const symbolObjection = {
+                    type: "simple-fill",
+                    color: [255, 0, 0, 0.5],
+                    outline: {
+                        color: "black",
+                        width: .5
+                    },
+                };
+
+                const popupTemplate = {
+                    title: "Tenament {tenid}",
+                    content: "Type: {type} <br> Tenement Status: {tenstatus} <br>"
+                };
+
+                const labelClass = {
+                    // autocasts as new LabelClass()
+                    symbol: {
+                        type: "text",  // autocasts as new TextSymbol()
+                        color: "black",
+                        font: {  // autocast as new Font()
+                            family: "Playfair Display",
+                            size: 12,
+                            weight: "normal"
+                        }
+                    },
+                    labelPlacement: "above-center",
+                    labelExpressionInfo: {
+                        expression: "$feature.tenid"
+                    }
+                };
+
+                const parcelQuery = {
+                    where: "OID IN (1,2,3,50)",  // Set by select element
+                    spatialRelationship: "intersects",
+                    outFields: ["*"],
+                    returnGeometry: true
+                };
+
+                const parcelQueryObjection = {
+                    where: "OID IN (4,5,6,51)",  // Set by select element
+                    spatialRelationship: "intersects",
+                    outFields: ["*"],
+                    returnGeometry: true
+                };
+
+                // Remove all previously added layer before adding the new layer
+                map.removeAll();
+
+                // Perform Query and create layer for Blue Polygon (eg Application)
+                WATenemantsLayer.queryFeatures(parcelQuery)
+                    .then((results) => {
+
+                        console.log("Feature Application count: " + results.features.length);
+                        // Assign styles and popup to features
+                        // results.features.map((feature) => {
+                        //     feature.symbol = symbol;
+                        //     feature.popupTemplate = popupTemplate;
+                        //     return feature;
+                        // });
+
+                        const queriedLayer = new FeatureLayer({
+                            source: results.features,  // array of graphics objects
+                            objectIdField: "OBJECTID",
+                            fields: [{
+                                name: "OBJECTID",
+                                type: "oid"
+                            }, {
+                                name: "tenid",
+                                type: "string"
+                            }, {
+                                name: "type",
+                                type: "string"
+                            }, {
+                                name: "tenstatus",
+                                type: "string"
+                            }],
+                            popupTemplate: popupTemplate,
+                            renderer: {  // overrides the layer's default renderer
+                                type: "simple",
+                                symbol: symbol
+                            },
+                            labelingInfo: [labelClass]
+                        })
+
+                        // Clear display
+                        view.popup.close();
+                        //view.graphics.removeAll();
+                        // Add features to graphics layer
+                        //view.graphics.addMany(results.features);
+                        
+                        map.add(queriedLayer);
+
+                        // There are many options to specify the zoom to criteria. Here we are using list of Graphics
+                        view.goTo(results.features);
+
+                    }).catch((error) => {
+                        console.log(error.error);
+                    });
+
+                // Perform Query and create layer for Red Polygon (eg Objection)
+                WATenemantsLayer.queryFeatures(parcelQueryObjection)
+                    .then((results) => {
+
+                        console.log("Feature objection count: " + results.features.lenght);
+                        // Assign styles and popup to features
+                        // results.features.map((feature) => {
+                        //     feature.symbol = symbol;
+                        //     feature.popupTemplate = popupTemplate;
+                        //     return feature;
+                        // });
+
+                        const queriedLayer = new FeatureLayer({
+                            source: results.features,  // array of graphics objects
+                            objectIdField: "OBJECTID",
+                            fields: [{
+                                name: "OBJECTID",
+                                type: "oid"
+                            }, {
+                                name: "tenid",
+                                type: "string"
+                            }, {
+                                name: "type",
+                                type: "string"
+                            }, {
+                                name: "tenstatus",
+                                type: "string"
+                            }],
+                            popupTemplate: popupTemplate,
+                            renderer: {  // overrides the layer's default renderer
+                                type: "simple",
+                                symbol: symbolObjection
+                            },
+                            labelingInfo: [labelClass]
+                        })
+
+                        // Clear display
+                        view.popup.close();
+                        //view.graphics.removeAll();
+                        // Add features to graphics layer
+                        //view.graphics.addMany(results.features);
+                        map.add(queriedLayer);
+
+                        // There are many options to specify the zoom to criteria. Here we are using list of Graphics
+                        view.goTo(results.features);
+
+                    }).catch((error) => {
+                        console.log(error.error);
+                    });
+            }
+
+            document.getElementById("btmPerformWhereInQuery").addEventListener("click", function () {
+                performWhereInQuery();
+            });
+
+        });
+    </script>
+</body>
+
+</html>
